@@ -9,7 +9,54 @@ from supabase import create_client
 st.set_page_config(
     page_title="MoreTickets 价格趋势看板",
     page_icon="📈",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# =========================
+# 手机端适配样式
+# =========================
+st.markdown(
+    """
+    <style>
+    /* 桌面端保持宽屏，手机端减少边距和字体大小 */
+    @media (max-width: 768px) {
+        .block-container {
+            padding: 0.8rem 0.65rem 2.2rem 0.65rem !important;
+        }
+        h1 {
+            font-size: 1.45rem !important;
+            line-height: 1.25 !important;
+        }
+        h2, h3 {
+            font-size: 1.05rem !important;
+            line-height: 1.3 !important;
+        }
+        [data-testid="stMetric"] {
+            border: 1px solid rgba(128,128,128,0.22);
+            border-radius: 12px;
+            padding: 0.55rem 0.6rem;
+            margin-bottom: 0.35rem;
+        }
+        [data-testid="stMetricLabel"] p {
+            font-size: 0.78rem !important;
+        }
+        [data-testid="stMetricValue"] {
+            font-size: 1.05rem !important;
+        }
+        div[data-testid="stDataFrame"] {
+            font-size: 12px !important;
+        }
+        .stPlotlyChart {
+            overflow-x: auto;
+        }
+        .stDownloadButton button {
+            width: 100%;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 st.title("MoreTickets 价格趋势看板")
@@ -281,6 +328,7 @@ if df.empty:
 
 st.caption(f"当前数据来源：Supabase 云数据库 / 表：{TABLE_NAME}")
 st.caption(f"数据库历史记录数：{len(df)} 条；采集批次数：{df['采集批次'].nunique()} 次；最新采集批次：{df['采集批次'].max().strftime('%Y-%m-%d %H:%M')}")
+st.caption("手机查看提示：筛选条件在左侧边栏，手机端可点击页面左上角的箭头展开。图表可左右滑动查看。")
 
 filtered_all_df = filter_dataframe(df)
 
@@ -301,20 +349,18 @@ summary_df = build_snapshot_summary(filtered_all_df)
 # =========================
 st.subheader("当前采集批次概览")
 
-col1, col2, col3, col4, col5 = st.columns(5)
-
+# 指标分成两行，手机端比 5 列横排更容易阅读
+col1, col2 = st.columns(2)
 with col1:
     st.metric("当前批次", pd.Timestamp(selected_batch).strftime("%m-%d %H:%M"))
-
 with col2:
     st.metric("演出数量", snapshot_df["演出名称"].nunique())
 
+col3, col4, col5 = st.columns(3)
 with col3:
     st.metric("当前票源数", count_tickets(snapshot_df))
-
 with col4:
     st.metric("最低当前价", f"{snapshot_df['当前价数值'].min():.0f}")
-
 with col5:
     st.metric("平均当前价", f"{snapshot_df['当前价数值'].mean():.0f}")
 
@@ -354,12 +400,12 @@ if not summary_df.empty:
         title=f"{selected_metric_name} 趋势（按采集批次）"
     )
     fig.update_layout(
-        height=520,
+        height=380,
         xaxis_title="采集批次",
         yaxis_title=selected_metric_name,
         legend_title="演出 / 大区"
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 else:
     st.info("暂无可用于趋势图的数据。")
 
@@ -396,8 +442,8 @@ fig_bar = px.bar(
     text="平均当前价",
     title=f"{pd.Timestamp(selected_batch).strftime('%Y-%m-%d %H:%M')} 各大区平均当前价"
 )
-fig_bar.update_layout(height=480, xaxis_title="大区名称", yaxis_title="平均当前价")
-st.plotly_chart(fig_bar, use_container_width=True)
+fig_bar.update_layout(height=360, xaxis_title="大区名称", yaxis_title="平均当前价")
+st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
 # =========================
 # 当前批次原价 vs 当前价
@@ -421,8 +467,8 @@ fig_compare = px.bar(
     barmode="group",
     title="当前批次各演出各大区：平均原价 vs 平均当前价"
 )
-fig_compare.update_layout(height=500)
-st.plotly_chart(fig_compare, use_container_width=True)
+fig_compare.update_layout(height=380)
+st.plotly_chart(fig_compare, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
 # =========================
 # 数据表格
@@ -451,7 +497,7 @@ display_columns = [col for col in display_columns if col in snapshot_df.columns]
 st.dataframe(
     snapshot_df[display_columns].sort_values("采集时间", ascending=False),
     use_container_width=True,
-    height=480
+    height=360
 )
 
 # =========================
