@@ -112,7 +112,7 @@ def append_unique(parts, value):
 
 def normalize_big_area(value):
     """
-    大区只保留一级票档/大类。纯数字 102/203 这类是小区/段位。
+    大区只保留一级票档/大类。数字段位、A1/B2、Floor2 这类分区不放进大区。
     """
     text = "" if pd.isna(value) else str(value).strip()
 
@@ -120,6 +120,12 @@ def normalize_big_area(value):
         return ""
 
     if re.match(r"^\d+", text):
+        return ""
+
+    if re.match(r"^[A-Z]{1,2}\d+(?:\b|\s|$)", text, flags=re.IGNORECASE):
+        return ""
+
+    if re.match(r"^floor(?:zone|\d+)?(?:\b|\s|$)", text, flags=re.IGNORECASE):
         return ""
 
     cat_match = re.match(r"^(CAT\s*\d+[A-Z]?)\b", text, flags=re.IGNORECASE)
